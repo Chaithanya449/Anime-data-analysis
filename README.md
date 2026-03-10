@@ -1,15 +1,15 @@
 <h1 align="center">🎌 Anime Data Analysis</h1>
 
-> Exploratory Data Analysis on 12,000+ anime titles — uncovering trends in genres, ratings, popularity, and the relationship between episode count and viewer engagement.
+> Always wondered whether a highly-rated anime actually ends up popular, or if episode count even matters. This project digs into 12,000+ anime titles from MyAnimeList to find out.
 
 ---
 
 # 📌 Problem
 
-With thousands of anime titles across multiple formats, understanding what drives ratings and popularity is non-trivial. This project explores the MyAnimeList dataset to answer:
-- Which genres and types dominate the anime landscape?
-- Does higher rating always mean higher popularity?
-- Is there a correlation between episode count, rating, and member count?
+Three questions drove this analysis:
+- What types and genres dominate the anime world?
+- Does a high rating guarantee popularity?
+- Does episode count affect ratings or viewer engagement?
 
 ---
 
@@ -19,46 +19,40 @@ With thousands of anime titles across multiple formats, understanding what drive
 |----------|---------|
 | File | `anime.csv` |
 | Records | 12,294 anime titles |
-| Features | 7 columns |
 | Source | MyAnimeList (MAL) |
 
-**Columns:**
+| Column | Description |
+|--------|-------------|
+| `name` | Anime title |
+| `genre` | Comma-separated genres (multi-label) |
+| `type` | Format: TV, Movie, OVA, Special, ONA, Music |
+| `episodes` | Episode count — 340 entries had `"Unknown"` strings |
+| `rating` | Average MAL user rating |
+| `members` | Users who added it to their list (popularity proxy) |
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `anime_id` | int | Unique identifier |
-| `name` | str | Anime title |
-| `genre` | str | Comma-separated genres |
-| `type` | str | Format (TV, Movie, OVA, etc.) |
-| `episodes` | str | Episode count (340 "Unknown" values) |
-| `rating` | float | Average MAL rating (230 nulls) |
-| `members` | int | Number of users who added it to their list |
+The data wasn't clean out of the box — `rating` and `episodes` were stored as `object` dtype instead of numeric. Handled each null deliberately rather than blanket-dropping rows:
 
-**Missing Values Handled:**
-
-| Column | Nulls | Treatment |
-|--------|-------|-----------|
-| `genre` | 62 | Filled with `"Unknown"` |
-| `type` | 25 | Filled with `"Unknown"` |
-| `rating` | 230 | Left as `NaN` (meaningful absence) |
-| `episodes` | 340 "Unknown" strings | Replaced with `NaN`, converted to `float` |
+| Column | Nulls | Treatment | Reason |
+|--------|-------|-----------|--------|
+| `genre` | 62 | `"Unknown"` | Categorical — NaN label preserves the row |
+| `type` | 25 | `"Unknown"` | Same reason |
+| `rating` | 230 | Kept as `NaN` | Absence of rating is information, not noise |
+| `episodes` | 340 `"Unknown"` strings | → `NaN`, cast to `float` | Required for numeric operations |
 
 ---
 
 # 🔍 Approach
 
-1. **Load & Inspect** — Checked dtypes, shape, null counts
-2. **Data Cleaning** — Handled mixed-type columns (`episodes`, `rating` stored as `object`); converted to numeric
-3. **Missing Value Strategy** — Categorical nulls → `"Unknown"` string; numeric nulls → kept as `NaN` for statistical integrity
-4. **Feature Engineering** — Created normalized `popularity` score from `members` using min-max scaling
-5. **EDA** — 5 visualizations: type distribution, rating histogram, top genres, popularity vs rating scatter, correlation heatmap
-6. **Insight Extraction** — Identified key patterns in ratings, genres, and popularity thresholds
+1. **Type conversion** — `episodes` and `rating` coerced to numeric via `pd.to_numeric()`
+2. **Feature engineering** — Min-max scaled `members` into a `popularity` score (0–1) for scatter plotting
+3. **Genre parsing** — Split multi-value `genre` column, counted individual genres using `Counter`
+4. **EDA** — 5 visualizations: type distribution, rating histogram, top genres bar chart, popularity vs rating scatter, correlation heatmap
 
 ---
 
 # 📊 Results
 
-**Anime Type Distribution:**
+**Type Distribution:**
 
 | Type | Count |
 |------|-------|
@@ -67,30 +61,27 @@ With thousands of anime titles across multiple formats, understanding what drive
 | Movie | 2,348 |
 | Special | 1,676 |
 | ONA | 659 |
-| Music | 488 |
 
 **Top 5 Genres:** Comedy (4,645) · Action (2,845) · Adventure (2,348) · Fantasy (2,309) · Sci-Fi (2,070)
 
-**Key Insights:**
+**Correlation (heatmap):**
+- `rating` ↔ `members`: **0.39** — quality helps but doesn't guarantee reach
+- `episodes` ↔ rating/members: ~**0** — episode count is irrelevant to both
 
-- 📈 **Rating vs Popularity** — Positive but non-linear relationship. Anime rated below ~7 rarely gain mainstream popularity. The real tipping point is **rating ≥ 8**, where member counts spike significantly
-- 🔗 **Correlation** — `rating` ↔ `members`: **0.39** (moderate positive). `episodes` ↔ `rating` and `episodes` ↔ `members`: near **zero** — episode count doesn't predict quality or popularity
-- ⭐ **Highest rated** titles (≥ 9.25): *Kimi no Na wa* (Movie), *Fullmetal Alchemist: Brotherhood* (TV), *Gintama°* (TV)
-- 🚨 **Surprise finding** — The absolute highest-rated titles (10.0, 9.6) have fewer than 100 members — niche titles inflating ratings with tiny vote bases
+**Key findings:**
+
+- Rating and popularity are positively related but not linear — between ratings 2–6 almost everything stays niche. The real jump happens at **rating ≥ 8**, that's where mainstream popularity kicks in
+- Highest-rated titles in the dataset (10.0, 9.6) had fewer than 100 members — small vote bases inflating scores. A minimum vote threshold filter would clean this up
+- Episode count surprised me the most — long-running shows have zero statistical edge over short ones
 
 ---
 
 # ▶️ How to Run
 
 ```bash
-# 1. Clone the repo
 git clone https://github.com/Chaithanya449/Anime-data-analysis.git
 cd Anime-data-analysis
-
-# 2. Install dependencies
 pip install -r requirements.txt
-
-# 3. Open the notebook
 jupyter notebook "anime (1).ipynb"
 ```
 
@@ -114,8 +105,8 @@ jupyter notebook "anime (1).ipynb"
 ```
 Anime-data-analysis/
 ├── anime (1).ipynb     # Main EDA notebook
-├── anime.csv           # Dataset (12,294 anime titles)
-├── requirements.txt    # Python dependencies
+├── anime.csv           # Dataset (12,294 titles)
+├── requirements.txt
 ├── .gitignore
 └── README.md
 ```
@@ -124,14 +115,13 @@ Anime-data-analysis/
 
 # 🔮 Next Steps
 
-- [ ] Build a **content-based recommender** using genre + rating features
-- [ ] Analyze rating reliability — filter titles with < 100 votes to remove rating inflation
-- [ ] Time-series analysis if release year data is available (anime trends over decades)
-- [ ] Genre co-occurrence heatmap — which genres are most commonly paired together
-- [ ] NLP on anime titles/descriptions to cluster by theme
+- [ ] Filter minimum vote threshold before ranking by rating — a 10.0 with 13 votes shouldn't top the charts
+- [ ] Build a content-based recommender using genre + rating
+- [ ] Genre co-occurrence heatmap — which genres are always paired together?
+- [ ] Add release year data to track how anime trends shifted over decades
 
 ---
 
 # 👤 Author
 
-**Chaithanya Krishna** · [LinkedIn](https://www.linkedin.com/in/chaitanyakrishna-profile)  [GitHub](https://github.com/Chaithanya449)
+**Chaithanya Krishna** · [LinkedIn](https://www.linkedin.com/in/chaitanyakrishna-profile) · [GitHub](https://github.com/Chaithanya449)
